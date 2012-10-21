@@ -1,0 +1,9 @@
+﻿<Window x:Class="IndexComparer.WPF.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Help | Index Comparer" Height="640" Width="650">
+    <Grid>
+        <TextBlock Height="550" HorizontalAlignment="Left" Margin="12,12,0,0" Name="tbHelp" Text="TextBlock" VerticalAlignment="Top" Width="600" TextWrapping="Wrap" />
+        <Button Content="Close This Help Window" Click="Help_Close" Height="23" HorizontalAlignment="Left" Margin="12,570,0,0" Name="btnClose" VerticalAlignment="Top" Width="600" />
+    </Grid>
+</Window>
