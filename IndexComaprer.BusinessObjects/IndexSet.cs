@@ -212,6 +212,9 @@ end + N'
         inner join sys.tables st on si.object_id = st.object_id
         left outer join sys.index_columns sic on sic.object_id = si.object_id and sic.index_id = si.index_id
         left outer join sys.columns sc on sic.column_id = sc.column_id and sic.object_id = sc.object_id
+	where
+		st.type = ''U''
+		AND st.name NOT IN (''sysdiagrams'')
 )
 select distinct
     SchemaName,
