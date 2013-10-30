@@ -225,7 +225,7 @@ with indexcolumns as
         si.name as IndexName,
         si.type_desc as IndexType,
         si.is_unique as IndexIsUnique,
-        sc.name as ColumnName,
+        QUOTENAME(sc.name) as ColumnName,
         sic.key_ordinal as ColumnOrderInIndex,
         sic.is_descending_key as ColumnOrderIsDescending,
         sic.is_included_column as IsIncludedColumn, ' +
