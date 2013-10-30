@@ -9,6 +9,20 @@ namespace IndexComparer.BusinessObjects
 {
     public class IndexSet : IEquatable<IndexSet>
     {
+
+        #region Constructors
+
+        public IndexSet()
+        {
+            //Set meaningful defaults
+            IndexIsUnique = false;
+            HasFilter = false;
+            CanRebuildOnline = false;
+            IsKeyConstraint = false;
+        }
+
+        #endregion
+
         #region Properties
 
         public string ServerName { get; set; }
@@ -23,6 +37,8 @@ namespace IndexComparer.BusinessObjects
         public bool HasFilter { get; set; }
         public string FilterDefinition { get; set; }
         public bool CanRebuildOnline { get; set; }
+        public bool IsKeyConstraint { get; set; }
+        public string KeyConstraintType { get; set; }
 
         #endregion
 
@@ -42,6 +58,26 @@ namespace IndexComparer.BusinessObjects
             }
         }
 
+        public string KeyConstraintTypeCode
+        {
+            get
+            {
+                if (IsKeyConstraint)
+                {
+                    switch (KeyConstraintType.Trim())
+                    {
+                        case "PK": return "Primary Key";
+                        case "UQ": return "Unique";
+                        default: return "?";
+                    }
+                }
+                else
+                {
+                    return "";
+                }
+            }
+        }
+
         public string SchemaAndTable
         {
             get
@@ -56,6 +92,8 @@ namespace IndexComparer.BusinessObjects
             {
                 if (IsHeap)
                     return "This is a heap.  That's not something you can go out of your way to drop.";
+                else if (IsKeyConstraint)
+                    return String.Format("IF EXISTS(SELECT * FROM sys.indexes WHERE name = '{0}' and OBJECT_SCHEMA_NAME(object_id) = '{1}' and OBJECT_NAME(object_id) = '{2}'){3}\tALTER TABLE [{1}].[{2}] DROP CONSTRAINT [{0}]", IndexName, SchemaName, TableName, Environment.NewLine);
                 else
                     return String.Format("IF EXISTS(SELECT * FROM sys.indexes WHERE name = '{0}' and OBJECT_SCHEMA_NAME(object_id) = '{1}' and OBJECT_NAME(object_id) = '{2}'){3}\tDROP INDEX [{0}] ON [{1}].[{2}]", IndexName, SchemaName, TableName, Environment.NewLine);
             }
@@ -67,6 +105,17 @@ namespace IndexComparer.BusinessObjects
             {
                 if (IsHeap)
                     return "This is a heap.  That's not something you can go out of your way to create.";
+                else if (IsKeyConstraint)
+                    return String.Format("{6}{7}ALTER TABLE [{1}].[{2}] ADD CONSTRAINT [{0}] {3} {4} ({5})",
+                        IndexName,
+                        SchemaName,
+                        TableName,
+                        KeyConstraintTypeCode,
+                        IndexType,
+                        Columns,
+                        DropScript,
+                        Environment.NewLine
+                        );
                 else
                     return String.Format("{9}{10}CREATE {3}{4} INDEX [{0}] ON [{1}].[{2}]({5}){6}{7}{8}",
                         IndexName,
@@ -124,7 +173,8 @@ namespace IndexComparer.BusinessObjects
 
             return Equals(other) && IndexIsUnique.Equals(other.IndexIsUnique) && IndexType.Equals(other.IndexType) &&
                 Columns.Equals(other.Columns) && IncludedColumns.Equals(other.IncludedColumns) &&
-                HasFilter.Equals(other.HasFilter) && FilterDefinition.Equals(other.FilterDefinition);
+                HasFilter.Equals(other.HasFilter) && FilterDefinition.Equals(other.FilterDefinition) && 
+                KeyConstraintTypeCode.Equals(other.KeyConstraintTypeCode);
         }
 
         #endregion
@@ -206,12 +256,18 @@ end + N'
 					then 1
 				else 0
 			end
-        as bit ) as CanRebuildOnline
+        as bit ) as CanRebuildOnline,
+		case
+			when kc.object_id IS NOT NULL THEN 1
+			else 0
+		end as IsKeyConstraint,
+		COALESCE(kc.type, '''') as KeyConstraintType
     from 
         sys.indexes si 
         inner join sys.tables st on si.object_id = st.object_id
         left outer join sys.index_columns sic on sic.object_id = si.object_id and sic.index_id = si.index_id
         left outer join sys.columns sc on sic.column_id = sc.column_id and sic.object_id = sc.object_id
+		left outer join sys.key_constraints kc on si.name = kc.name
 	where
 		st.type = ''U''
 		AND st.name NOT IN (''sysdiagrams'')
@@ -226,7 +282,9 @@ select distinct
     coalesce(substring((SELECT '', '' + ColumnName + case when ColumnOrderIsDescending = 1 then '' DESC'' else '''' end FROM indexcolumns ic3 WHERE ic1.object_id = ic3.object_id and ic1.index_id = ic3.index_id and IsIncludedColumn = 1 ORDER BY ColumnOrderInIndex FOR XML PATH ( '''' )), 3, 1000), '''') as [IncludedColumns],
     HasFilter,
     FilterDefinition,
-    CanRebuildOnline
+    CanRebuildOnline,
+	IsKeyConstraint,
+	KeyConstraintType
 from
     indexcolumns ic1;
 ';
@@ -256,6 +314,8 @@ exec sp_executesql @sql;
                         ix.HasFilter = Convert.ToBoolean(dr["HasFilter"]);
                         ix.FilterDefinition = dr["FilterDefinition"].ToString();
                         ix.CanRebuildOnline = Convert.ToBoolean(dr["CanRebuildOnline"]);
+                        ix.IsKeyConstraint = Convert.ToBoolean(dr["IsKeyConstraint"]);
+                        ix.KeyConstraintType = dr["KeyConstraintType"].ToString();
 
                         results.Add(ix);
                     }

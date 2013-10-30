@@ -19,6 +19,7 @@ namespace IndexComparer.UnitTests
         *   the tests using the default connection string will fail.                                            *
         ********************************************************************************************************/
         private string InstanceName = "localhost";
+        private string DatabaseName = "master";
         //This should be an instance which does NOT exist on your network.
         private string BadInstanceName = "badinstancename";
         //This should be an instance which does NOT exist on your network.
@@ -540,13 +541,253 @@ namespace IndexComparer.UnitTests
         [TestMethod]
         public void IndexSet_GoodData_ConnectionString_Success()
         {
-            string ConnectionString = String.Format("server={0};database=tempdb;trusted_connection=yes", InstanceName);
-            IEnumerable<IndexSet> indexes = IndexSet.RetrieveIndexData(InstanceName, "master", ConnectionString);
+            string ConnectionString = String.Format("server={0};database={1};trusted_connection=yes", InstanceName, DatabaseName);
+            IEnumerable<IndexSet> indexes = IndexSet.RetrieveIndexData(InstanceName, DatabaseName, ConnectionString);
 
             Assert.IsNotNull(indexes);
             Assert.AreNotEqual(0, indexes.Count());
             Assert.AreEqual("master", indexes.ElementAt(0).DatabaseName);
             Assert.AreEqual(InstanceName, indexes.ElementAt(0).ServerName);
+        }
+
+        #endregion
+
+        #region Primary and Unique Key Constraints
+
+        //Primary key constraint should result in ALTER TABLE ADD CONSTRAINT
+        [TestMethod]
+        public void IndexSet_PK_AlterTable_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp = new IndexComparer.BusinessObjects.IndexSet();
+            isp.ServerName = "Server 1";
+            isp.DatabaseName = "Database 1";
+            isp.SchemaName = "dbo";
+            isp.TableName = "Table1";
+            isp.IndexName = "PK_Table";
+            isp.IndexType = "NONCLUSTERED";
+            isp.IndexIsUnique = true;
+            isp.IsKeyConstraint = false;        //Force a negative test.
+            isp.Columns = "SomeColumn,SomeColumn2";
+            isp.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp.HasFilter = true;
+            isp.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp.CreateScript.Contains("CREATE UNIQUE NONCLUSTERED INDEX"));
+            Assert.IsFalse(isp.CreateScript.Contains("ADD CONSTRAINT"));
+        }
+
+        [TestMethod]
+        public void IndexSet_PK_AlterTable_True()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp = new IndexComparer.BusinessObjects.IndexSet();
+            isp.ServerName = "Server 1";
+            isp.DatabaseName = "Database 1";
+            isp.SchemaName = "dbo";
+            isp.TableName = "Table1";
+            isp.IndexName = "PK_Table";
+            isp.IndexType = "NONCLUSTERED";
+            isp.IndexIsUnique = true;
+            isp.IsKeyConstraint = true;        //Primary keys are key constraints
+            isp.KeyConstraintType = "PK";      //Primary key constraint code
+            isp.Columns = "SomeColumn,SomeColumn2";
+            isp.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp.HasFilter = true;
+            isp.FilterDefinition = "(ID < 500)";
+
+            Assert.IsFalse(isp.CreateScript.Contains("CREATE UNIQUE NONCLUSTERED INDEX"));
+            Assert.IsTrue(isp.CreateScript.Contains("ADD CONSTRAINT"));
+        }
+
+        //Unique key constraint should result in ALTER TABLE ADD CONSTRAINT
+        [TestMethod]
+        public void IndexSet_UKC_AlterTable_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp = new IndexComparer.BusinessObjects.IndexSet();
+            isp.ServerName = "Server 1";
+            isp.DatabaseName = "Database 1";
+            isp.SchemaName = "dbo";
+            isp.TableName = "Table1";
+            isp.IndexName = "UKC_Table";
+            isp.IndexType = "NONCLUSTERED";
+            isp.IndexIsUnique = true;
+            isp.IsKeyConstraint = false;        //Force a negative test.
+            isp.Columns = "SomeColumn,SomeColumn2";
+            isp.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp.HasFilter = true;
+            isp.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp.CreateScript.Contains("CREATE UNIQUE NONCLUSTERED INDEX"));
+            Assert.IsFalse(isp.CreateScript.Contains("ADD CONSTRAINT"));
+        }
+
+        [TestMethod]
+        public void IndexSet_UKC_AlterTable_True()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp = new IndexComparer.BusinessObjects.IndexSet();
+            isp.ServerName = "Server 1";
+            isp.DatabaseName = "Database 1";
+            isp.SchemaName = "dbo";
+            isp.TableName = "Table1";
+            isp.IndexName = "UKC_Table";
+            isp.IndexType = "NONCLUSTERED";
+            isp.IndexIsUnique = true;
+            isp.IsKeyConstraint = true;        //Unique keys are key constraints
+            isp.KeyConstraintType = "UQ";      //Unique key constraint code
+            isp.Columns = "SomeColumn,SomeColumn2";
+            isp.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp.HasFilter = true;
+            isp.FilterDefinition = "(ID < 500)";
+
+            Assert.IsFalse(isp.CreateScript.Contains("CREATE UNIQUE NONCLUSTERED INDEX"));
+            Assert.IsTrue(isp.CreateScript.Contains("ADD CONSTRAINT"));
+        }
+
+        //Index comparison between PK and equivalent NCI should DIFFER
+        [TestMethod]
+        public void IndexSet_PK_NCI_IsEqual_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp3 = new IndexComparer.BusinessObjects.IndexSet();
+            isp3.ServerName = "Server 1";
+            isp3.DatabaseName = "Database 1";
+            isp3.SchemaName = "dbo";
+            isp3.TableName = "Table1";
+            isp3.IndexName = "Index3";
+            isp3.IndexType = "NONCLUSTERED";
+            isp3.IndexIsUnique = true;
+            isp3.IsKeyConstraint = true;
+            isp3.KeyConstraintType = "PK";
+            isp3.Columns = "SomeColumn,SomeColumn2";
+            isp3.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp3.HasFilter = true;
+            isp3.FilterDefinition = "(ID < 500)";
+
+            IndexComparer.BusinessObjects.IndexSet iss4 = new IndexComparer.BusinessObjects.IndexSet();
+            iss4.ServerName = "Server 1";
+            iss4.DatabaseName = "Database 1";
+            iss4.SchemaName = "dbo";
+            iss4.TableName = "Table1";
+            iss4.IndexName = "Index3";
+            iss4.IndexType = "NONCLUSTERED";
+            iss4.IndexIsUnique = true;
+            iss4.Columns = "SomeColumn,SomeColumn2";
+            iss4.IncludedColumns = "SomeColumn4,SomeColumn3";
+            iss4.HasFilter = true;
+            iss4.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp3.Equals(iss4));       //Server, database, schema, table, and index name match.
+            Assert.AreEqual(isp3.GetHashCode(), iss4.GetHashCode());
+            Assert.IsFalse(isp3.TotallyEquals(iss4));   //Key constraint does NOT match.
+        }
+
+        //Index comparison between UKC and equivalent NCI should DIFFER
+        [TestMethod]
+        public void IndexSet_UQ_NCI_IsEqual_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp3 = new IndexComparer.BusinessObjects.IndexSet();
+            isp3.ServerName = "Server 1";
+            isp3.DatabaseName = "Database 1";
+            isp3.SchemaName = "dbo";
+            isp3.TableName = "Table1";
+            isp3.IndexName = "Index3";
+            isp3.IndexType = "NONCLUSTERED";
+            isp3.IndexIsUnique = true;
+            isp3.IsKeyConstraint = true;
+            isp3.KeyConstraintType = "UQ";
+            isp3.Columns = "SomeColumn,SomeColumn2";
+            isp3.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp3.HasFilter = true;
+            isp3.FilterDefinition = "(ID < 500)";
+
+            IndexComparer.BusinessObjects.IndexSet iss4 = new IndexComparer.BusinessObjects.IndexSet();
+            iss4.ServerName = "Server 1";
+            iss4.DatabaseName = "Database 1";
+            iss4.SchemaName = "dbo";
+            iss4.TableName = "Table1";
+            iss4.IndexName = "Index3";
+            iss4.IndexType = "NONCLUSTERED";
+            iss4.IndexIsUnique = true;
+            iss4.Columns = "SomeColumn,SomeColumn2";
+            iss4.IncludedColumns = "SomeColumn4,SomeColumn3";
+            iss4.HasFilter = true;
+            iss4.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp3.Equals(iss4));       //Server, database, schema, table, and index name match.
+            Assert.AreEqual(isp3.GetHashCode(), iss4.GetHashCode());
+            Assert.IsFalse(isp3.TotallyEquals(iss4));   //Key constraint does NOT match.
+        }
+
+        //Index comparison between PK and equivalent CI should DIFFER
+        [TestMethod]
+        public void IndexSet_PK_CI_IsEqual_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp3 = new IndexComparer.BusinessObjects.IndexSet();
+            isp3.ServerName = "Server 1";
+            isp3.DatabaseName = "Database 1";
+            isp3.SchemaName = "dbo";
+            isp3.TableName = "Table1";
+            isp3.IndexName = "Index3";
+            isp3.IndexType = "CLUSTERED";
+            isp3.IndexIsUnique = true;
+            isp3.IsKeyConstraint = true;
+            isp3.KeyConstraintType = "PK";
+            isp3.Columns = "SomeColumn,SomeColumn2";
+            isp3.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp3.HasFilter = true;
+            isp3.FilterDefinition = "(ID < 500)";
+
+            IndexComparer.BusinessObjects.IndexSet iss4 = new IndexComparer.BusinessObjects.IndexSet();
+            iss4.ServerName = "Server 1";
+            iss4.DatabaseName = "Database 1";
+            iss4.SchemaName = "dbo";
+            iss4.TableName = "Table1";
+            iss4.IndexName = "Index3";
+            iss4.IndexType = "CLUSTERED";
+            iss4.IndexIsUnique = true;
+            iss4.Columns = "SomeColumn,SomeColumn2";
+            iss4.IncludedColumns = "SomeColumn4,SomeColumn3";
+            iss4.HasFilter = true;
+            iss4.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp3.Equals(iss4));       //Server, database, schema, table, and index name match.
+            Assert.AreEqual(isp3.GetHashCode(), iss4.GetHashCode());
+            Assert.IsFalse(isp3.TotallyEquals(iss4));   //Key constraint does NOT match.
+        }
+
+        //Index comparison between UKC and equivalent CI should DIFFER
+        [TestMethod]
+        public void IndexSet_UQ_CI_IsEqual_False()
+        {
+            IndexComparer.BusinessObjects.IndexSet isp3 = new IndexComparer.BusinessObjects.IndexSet();
+            isp3.ServerName = "Server 1";
+            isp3.DatabaseName = "Database 1";
+            isp3.SchemaName = "dbo";
+            isp3.TableName = "Table1";
+            isp3.IndexName = "Index3";
+            isp3.IndexType = "CLUSTERED";
+            isp3.IndexIsUnique = true;
+            isp3.IsKeyConstraint = true;
+            isp3.KeyConstraintType = "PK";
+            isp3.Columns = "SomeColumn,SomeColumn2";
+            isp3.IncludedColumns = "SomeColumn4,SomeColumn3";
+            isp3.HasFilter = true;
+            isp3.FilterDefinition = "(ID < 500)";
+
+            IndexComparer.BusinessObjects.IndexSet iss4 = new IndexComparer.BusinessObjects.IndexSet();
+            iss4.ServerName = "Server 1";
+            iss4.DatabaseName = "Database 1";
+            iss4.SchemaName = "dbo";
+            iss4.TableName = "Table1";
+            iss4.IndexName = "Index3";
+            iss4.IndexType = "CLUSTERED";
+            iss4.IndexIsUnique = true;
+            iss4.Columns = "SomeColumn,SomeColumn2";
+            iss4.IncludedColumns = "SomeColumn4,SomeColumn3";
+            iss4.HasFilter = true;
+            iss4.FilterDefinition = "(ID < 500)";
+
+            Assert.IsTrue(isp3.Equals(iss4));       //Server, database, schema, table, and index name match.
+            Assert.AreEqual(isp3.GetHashCode(), iss4.GetHashCode());
+            Assert.IsFalse(isp3.TotallyEquals(iss4));   //Key constraint does NOT match.
         }
 
         #endregion
