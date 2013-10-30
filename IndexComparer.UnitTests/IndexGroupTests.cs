@@ -245,5 +245,19 @@ namespace IndexComparer.UnitTests
             Assert.AreEqual(5, Group.Count());      //1=1, p2, s2, 3~=3, 4~=4
             Assert.AreEqual(2, Group.Where(x => x.ComparisonDiffers).Count());  //3 & 4 differ
         }
+
+        [TestMethod]
+        public void IndexGroup_IgnoreMissingTables_PrimaryMissingTable_Success()
+        {
+            PrimaryIndexes.Add(isp1);
+            SecondaryIndexes.Add(iss1);
+            SecondaryIndexes.Add(iss3);
+
+            IEnumerable<IndexGroup> Group = IndexGroup.PopulateIndexGroups(PrimaryIndexes, SecondaryIndexes, true);
+
+            Assert.IsNotNull(Group);
+            Assert.AreEqual(1, Group.Count());      //1=1; s3 missing
+            Assert.AreEqual(0, Group.Where(x => x.ComparisonDiffers).Count());
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IndexComparer.ConsoleApp", "IndexComparer\IndexComparer.ConsoleApp.csproj", "{AE29A04D-CBF8-4CBD-8D20-AF4C88B18E40}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IndexComparer.ConsoleApp", "IndexComparer.ConsoleApp\IndexComparer.ConsoleApp.csproj", "{AE29A04D-CBF8-4CBD-8D20-AF4C88B18E40}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IndexComparer.BusinessObjects", "IndexComaprer.BusinessObjects\IndexComparer.BusinessObjects.csproj", "{79A4856C-3A38-4398-A41A-E08D8B83CA0E}"
 EndProject

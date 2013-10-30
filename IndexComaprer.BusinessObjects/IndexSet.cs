@@ -109,7 +109,7 @@ namespace IndexComparer.BusinessObjects
         {
             using (MD5 md5 = new MD5CryptoServiceProvider())
             {
-                return BitConverter.ToString(md5.ComputeHash(ASCIIEncoding.Default.GetBytes(SchemaName + TableName + IndexName))).GetHashCode();
+                return BitConverter.ToString(md5.ComputeHash(ASCIIEncoding.Default.GetBytes(SchemaName.ToLower() + TableName.ToLower() + IndexName.ToLower()))).GetHashCode();
             }
         }
 

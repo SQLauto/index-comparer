@@ -379,25 +379,55 @@ namespace IndexComparer.BusinessObjects
         /// </summary>
         /// <param name="Base">The "base" index set group.</param>
         /// <param name="Comp">The indexes you would like to compare to the base indexes.</param>
-        /// <returns>A set of IndexDifference objects containing the indexes which have the same name but different definitions.  
+        /// <param name="IgnoreMissingTables">Only return a value if the index's table exists in Base and Comp.</param>
+        /// <returns>A set of IndexDifference objects containing the indexes which have the same name but different definitions.
         /// If there are no results, this returns an empty IEnumerable.</returns>
-        public static IEnumerable<IndexGroup> PopulateIndexGroups(IEnumerable<IndexSet> Base, IEnumerable<IndexSet> Comp)
+        public static IEnumerable<IndexGroup> PopulateIndexGroups(IEnumerable<IndexSet> Base, IEnumerable<IndexSet> Comp, bool IgnoreMissingTables = false)
         {
-            var query = (
-                            from b in Base
-                            join c in Comp on b.GetHashCode() equals c.GetHashCode() into tempComp
-                            from newc in tempComp.DefaultIfEmpty()
-                            select new IndexGroup(b, newc)
-                        ).Union
-                        (
-                            from c2 in Comp
-                            join b2 in Base on c2.GetHashCode() equals b2.GetHashCode() into tempBase
-                            from newb in tempBase.DefaultIfEmpty()
-                            select new IndexGroup(newb, c2)
-                        );
+            var BaseTables = Base.Select(x => x.SchemaAndTable).Distinct();
+            var CompTables = Comp.Select(x => x.SchemaAndTable).Distinct();
+
+            IEnumerable<IndexGroup> query;
+
+            if (IgnoreMissingTables)
+            {
+                query = (
+                from b in Base
+                join bt in BaseTables on b.SchemaAndTable equals bt
+                join ct in CompTables on b.SchemaAndTable equals ct
+                join c in Comp on b.GetHashCode() equals c.GetHashCode() into tempComp
+                from newc in tempComp.DefaultIfEmpty()
+                select new IndexGroup(b, newc)
+                ).Union
+                (
+                from c2 in Comp
+                join bt2 in BaseTables on c2.SchemaAndTable equals bt2
+                join ct2 in CompTables on c2.SchemaAndTable equals ct2
+                join b2 in Base on c2.GetHashCode() equals b2.GetHashCode() into tempBase
+                from newb in tempBase.DefaultIfEmpty()
+                select new IndexGroup(newb, c2)
+                );
+            }
+            else
+            {
+                query = (
+                from b in Base
+                join c in Comp on b.GetHashCode() equals c.GetHashCode() into tempComp
+                from newc in tempComp.DefaultIfEmpty()
+                select new IndexGroup(b, newc)
+                ).Union
+                (
+                from c2 in Comp
+                join b2 in Base on c2.GetHashCode() equals b2.GetHashCode() into tempBase
+                from newb in tempBase.DefaultIfEmpty()
+                select new IndexGroup(newb, c2)
+                );
+            }
 
             return query;
         }
+
+
 
         #endregion
     }
