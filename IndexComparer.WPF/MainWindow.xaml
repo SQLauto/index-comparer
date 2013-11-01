@@ -193,6 +193,7 @@
             <Grid>
                 <CheckBox Click="OptionChanged" Content="Show Only Differences?" Height="16" HorizontalAlignment="Left" Margin="10,7,0,0" Name="chkShowOnlyDifferences" IsChecked="True" VerticalAlignment="Top" />
                 <CheckBox Click="OptionChanged" Content="Group By Table?" Height="16" HorizontalAlignment="Left" Margin="186,5,0,0" Name="chkDisplayGroups" IsChecked="True" VerticalAlignment="Top" />
+                <CheckBox Click="OptionChanged_Force" Content="Ignore Missing Tables?" Height="16" HorizontalAlignment="Left" Margin="320,5,0,0" Name="chkIgnoreMissingTables" IsChecked="False" VerticalAlignment="Top" />
             </Grid>
         </GroupBox>
     </Grid>

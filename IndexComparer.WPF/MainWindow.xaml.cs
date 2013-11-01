@@ -26,6 +26,7 @@ namespace IndexComparer.WPF
         public string CurrentSecondaryDatabaseName { get; set; }
         public bool ShowOnlyDifferences { get; set; }
         public bool DisplayGroups { get; set; }
+        public bool IgnoreMissingTables { get; set; }
         public bool ForceRefresh { get; set; }
         public bool DatabaseListingChanged { get; set; }
     }
@@ -91,7 +92,7 @@ namespace IndexComparer.WPF
                     {
                         PrimaryGroup = IndexSet.RetrieveIndexData(mwv.CurrentPrimaryInstanceName, mwv.CurrentPrimaryDatabaseName);
                         SecondaryGroup = IndexSet.RetrieveIndexData(mwv.CurrentSecondaryInstanceName, mwv.CurrentSecondaryDatabaseName);
-                        Groups = IndexGroup.PopulateIndexGroups(PrimaryGroup, SecondaryGroup);
+                        Groups = IndexGroup.PopulateIndexGroups(PrimaryGroup, SecondaryGroup, mwv.IgnoreMissingTables);
                     }
 
                     //Now update the display
@@ -117,7 +118,8 @@ namespace IndexComparer.WPF
                                             (
                                                 Groups,
                                                 mwv.ShowOnlyDifferences,
-                                                mwv.DisplayGroups
+                                                mwv.DisplayGroups,
+                                                mwv.IgnoreMissingTables
                                             );
                 SetColumnVisibility(!mwv.DisplayGroups);
 
@@ -210,6 +212,7 @@ namespace IndexComparer.WPF
             mwv.DisplayGroups = chkDisplayGroups.IsChecked.Value;
             mwv.ForceRefresh = ForceRefresh;
             mwv.ShowOnlyDifferences = chkShowOnlyDifferences.IsChecked.Value;
+            mwv.IgnoreMissingTables = chkIgnoreMissingTables.IsChecked.Value;
             mwv.DatabaseListingChanged = DatabaseListingChanged;
 
             return mwv;
@@ -345,6 +348,12 @@ namespace IndexComparer.WPF
         {
             if (ReadyToRock)
                 PopulateGrid(false);
+        }
+
+        void OptionChanged_Force(object sender, RoutedEventArgs e)
+        {
+            if (ReadyToRock)
+                PopulateGrid(true);
         }
 
         void ExportToTextFile(object sender, RoutedEventArgs e)

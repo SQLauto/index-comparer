@@ -16,7 +16,8 @@ namespace IndexComparer.WPF
         (
             IEnumerable<IndexGroup> Groups,
             bool OnlyShowDifferences,
-            bool ShowGroups
+            bool ShowGroups,
+            bool IgnoreMissingTables
         )
         {
             if (OnlyShowDifferences)
