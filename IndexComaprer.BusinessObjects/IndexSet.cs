@@ -78,6 +78,14 @@ namespace IndexComparer.BusinessObjects
             }
         }
 
+        public bool IsPrimaryIndex
+        {
+            get
+            {
+                return IndexType == "HEAP" || IndexType == "CLUSTERED";
+            }
+        }
+
         public string SchemaAndTable
         {
             get

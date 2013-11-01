@@ -22,6 +22,10 @@ namespace IndexComparer.UnitTests
         private IndexSet iss3;
         private IndexSet isp4;
         private IndexSet iss4;
+        private IndexSet isp5;
+        private IndexSet iss5;
+        private IndexSet isp6;
+        private IndexSet iss6;
 
         [TestInitialize()]
         public void GenerateTestData()
@@ -35,6 +39,10 @@ namespace IndexComparer.UnitTests
             //The primary columns match, but there are secondary column differences
             //isp4 ~= iss4
             //The primary columns match, but there are secondary column differences
+            //isp5 is unique:  clustered index
+            //iss5 is unique:  clustered index
+            //isp6 is unique:  clustered index
+            //iss6 is unique:  heap
 
             PrimaryIndexes = new List<BusinessObjects.IndexSet>();
             SecondaryIndexes = new List<BusinessObjects.IndexSet>();
@@ -56,7 +64,7 @@ namespace IndexComparer.UnitTests
             isp2.ServerName = "Server 1";
             isp2.DatabaseName = "Database 1";
             isp2.SchemaName = "dbo";
-            isp2.TableName = "Table1";
+            isp2.TableName = "Table3";
             isp2.IndexName = "Index6";
             isp2.IndexType = "CLUSTERED";
             isp2.IndexIsUnique = true;
@@ -90,6 +98,32 @@ namespace IndexComparer.UnitTests
             isp4.IncludedColumns = String.Empty;
             isp4.HasFilter = false;
             isp4.FilterDefinition = String.Empty;
+
+            isp5 = new IndexSet();
+            isp5.ServerName = "Server 1";
+            isp5.DatabaseName = "Database 1";
+            isp5.SchemaName = "dbo";
+            isp5.TableName = "Table5";
+            isp5.IndexName = "IndexX";
+            isp5.IndexType = "CLUSTERED";
+            isp5.IndexIsUnique = true;
+            isp5.Columns = "ID";
+            isp5.IncludedColumns = String.Empty;
+            isp5.HasFilter = false;
+            isp5.FilterDefinition = String.Empty;
+
+            isp6 = new IndexSet();
+            isp6.ServerName = "Server 1";
+            isp6.DatabaseName = "Database 1";
+            isp6.SchemaName = "dbo";
+            isp6.TableName = "Table6";
+            isp6.IndexName = "IndexX";
+            isp6.IndexType = "CLUSTERED";
+            isp6.IndexIsUnique = true;
+            isp6.Columns = "ID";
+            isp6.IncludedColumns = String.Empty;
+            isp6.HasFilter = false;
+            isp6.FilterDefinition = String.Empty;
 
             iss1 = new IndexSet();
             iss1.ServerName = "Server 1";
@@ -142,6 +176,32 @@ namespace IndexComparer.UnitTests
             iss4.IncludedColumns = String.Empty;
             iss4.HasFilter = false;
             iss4.FilterDefinition = String.Empty;
+
+            iss5 = new IndexSet();
+            iss5.ServerName = "Server 1";
+            iss5.DatabaseName = "Database 1";
+            iss5.SchemaName = "dbo";
+            iss5.TableName = "Table5";
+            iss5.IndexName = "SomeOtherIndex";
+            iss5.IndexType = "CLUSTERED";
+            iss5.IndexIsUnique = true;
+            iss5.Columns = "NotID";
+            iss5.IncludedColumns = String.Empty;
+            iss5.HasFilter = false;
+            iss5.FilterDefinition = String.Empty;
+
+            iss6 = new IndexSet();
+            iss6.ServerName = "Server 1";
+            iss6.DatabaseName = "Database 1";
+            iss6.SchemaName = "dbo";
+            iss6.TableName = "Table6";
+            iss6.IndexName = String.Empty;
+            iss6.IndexType = "HEAP";
+            iss6.IndexIsUnique = false;
+            iss6.Columns = String.Empty;
+            iss6.IncludedColumns = String.Empty;
+            iss6.HasFilter = false;
+            iss6.FilterDefinition = String.Empty;
         }
 
         #endregion
@@ -258,6 +318,32 @@ namespace IndexComparer.UnitTests
             Assert.IsNotNull(Group);
             Assert.AreEqual(1, Group.Count());      //1=1; s3 missing
             Assert.AreEqual(0, Group.Where(x => x.ComparisonDiffers).Count());
+        }
+
+        [TestMethod]
+        public void IndexGroup_DifferentClusteredIndexes_OneRow_Success()
+        {
+            PrimaryIndexes.Add(isp5);
+            SecondaryIndexes.Add(iss5);
+
+            IEnumerable<IndexGroup> Group = IndexGroup.PopulateIndexGroups(PrimaryIndexes, SecondaryIndexes, true);
+
+            Assert.IsNotNull(Group);
+            Assert.AreEqual(1, Group.Count());      //s5 & p5 linked together but differ
+            Assert.AreEqual(1, Group.Where(x => x.ComparisonDiffers).Count());
+        }
+
+        [TestMethod]
+        public void IndexGroup_CIAndHeap_OneRow_Success()
+        {
+            PrimaryIndexes.Add(isp6);
+            SecondaryIndexes.Add(iss6);
+
+            IEnumerable<IndexGroup> Group = IndexGroup.PopulateIndexGroups(PrimaryIndexes, SecondaryIndexes, true);
+
+            Assert.IsNotNull(Group);
+            Assert.AreEqual(1, Group.Count());      //s6 & p6 linked together but differ
+            Assert.AreEqual(1, Group.Where(x => x.ComparisonDiffers).Count());
         }
     }
 }
